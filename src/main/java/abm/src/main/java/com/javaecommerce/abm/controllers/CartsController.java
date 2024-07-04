@@ -16,16 +16,16 @@ public class CartsController {
 
     @Autowired private CartsService service;
 
-    @PostMapping() public void addToCart(@RequestBody Integer amount, Product product_id, Client client_id) {
+    @PostMapping("/{client_id}/add/{product_id}/{amount}") public void addToCart(@PathVariable Long client_id, @PathVariable Long product_id, @PathVariable Integer amount) {
         try {
-            service.addToCart(amount, product_id, client_id);
+            service.addToCart(client_id, product_id, amount);
         } catch(Exception e) {
             System.out.println("Saving Exception: " + e);
             throw new RuntimeException("Saving Exception");
         }
     }
 
-    @GetMapping() public List<Optional<Cart>> readByClientId(Long id) {
+    @GetMapping("/{id}") public List<Optional<Cart>> readByClientId(@PathVariable Long id) {
         try {
             return service.readByClientId(id);
         } catch(Exception e) {
@@ -34,7 +34,7 @@ public class CartsController {
         }
     }
 
-    @PatchMapping() public void removeFromCart(@RequestBody Client client_id, Product product_id, Integer quantityChange) {
+    @PatchMapping("/{client_id}/remove/{product_id}/{quantityChange}") public void removeFromCart(@PathVariable Long client_id, @PathVariable Long product_id, @PathVariable Integer quantityChange) {
         try {
             service.removeFromCart(client_id, product_id, quantityChange);
         } catch(Exception e) {

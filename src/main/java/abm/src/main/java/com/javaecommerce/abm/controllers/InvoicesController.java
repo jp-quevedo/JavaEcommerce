@@ -11,7 +11,7 @@ public class InvoicesController {
 
     @Autowired private InvoicesService service;
 
-    @PostMapping() public void saveInvoice(@RequestBody Client client_id) {
+    @PostMapping("/{client_id}") public void saveInvoice(@PathVariable Long client_id) {
         try {
             service.saveInvoice(client_id);
         } catch(Exception e) {

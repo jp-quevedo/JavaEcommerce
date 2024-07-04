@@ -9,6 +9,7 @@ import com.javaecommerce.abm.repositories.ProductsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -21,15 +22,21 @@ public class CartsService {
     @Autowired private ClientsRepository clients_repository;
     @Autowired private ProductsRepository products_repository;
 
-    public void addToCart(Integer amount, Product product_id, Client client_id) {
+    public void addToCart(Long client_id, Long product_id, Integer amount) {
         try {
-            Cart cart = new Cart();
-            cart.setAmount(amount);
-            cart.setPrice(products_repository.findById(product_id.getId()).get().getPrice());
-            cart.setProduct_id(product_id);
-            cart.setClient_id(client_id);
-            repository.save(cart);
-            System.out.println("Product added to cart");
+            Optional<Client> optionalClient = clients_repository.findById(client_id);
+            Optional<Product> optionalProduct = products_repository.findById(product_id);
+            if (optionalClient.isPresent() && optionalProduct.isPresent()) {
+                Client client = optionalClient.get();
+                Product product = optionalProduct.get();
+                Cart cart = new Cart();
+                cart.setClient_id(client);
+                cart.setProduct_id(product);
+                cart.setPrice(product.getPrice());
+                cart.setAmount(amount);
+                repository.save(cart);
+                System.out.println("Product added to cart");
+            }
         } catch (Exception e) {
             System.err.println("Failed to update cart: " + e.getMessage());
             throw e;
@@ -59,31 +66,41 @@ public class CartsService {
         }
     }
 
-    public void removeFromCart(Client client_id, Product product_id, Integer quantityChange) {
+    public void removeFromCart(Long client_id, Long product_id, Integer quantityChange) {
         try {
-            Optional<Client> optionalClient = clients_repository.findById(client_id.getId());
-            if (optionalClient.isPresent()) {
+            Optional<Client> optionalClient = clients_repository.findById(client_id);
+            Optional<Product> optionalProduct = products_repository.findById(product_id);
+            if (optionalClient.isPresent() && optionalProduct.isPresent()) {
                 Client client = optionalClient.get();
-                List<Cart> carts = client.getCart();
+                Product product = optionalProduct.get();
+                List<Cart> carts = repository.findAll();
                 if (!carts.isEmpty()) {
+                    List<Cart> cartsToRemove = new ArrayList<>();
                     for (Cart cart : carts) {
-                        if (cart.getProduct_id().getId().equals(product_id.getId())) {
+                        if (cart.getClient_id().getId().equals(client_id) && cart.getProduct_id().getId().equals(product_id)) {
                             int currentQuantity = cart.getAmount();
                             int newQuantity = currentQuantity - quantityChange;
+                            cart.setAmount(newQuantity);
+                            repository.save(cart);
                             if (newQuantity <= 0) {
-                                carts.remove(cart);
-                                System.out.println("Product removed from cart");
-                                break;
-                            } else {
-                                System.out.println("Cart updated");
+                                cartsToRemove.add(cart);
                             }
                         }
+                    }
+                    carts.removeAll(cartsToRemove);
+                    if (!cartsToRemove.isEmpty()) {
+                        System.out.println("Products removed from cart");
+                        carts.forEach(cart -> {
+                            repository.save(cart);
+                        });
+                    } else {
+                        System.out.println("No products matched for removal");
                     }
                 } else {
                     System.out.println("Could not find any cart for the given client id");
                 }
             } else {
-                System.out.println("Could not find any client with the given id");
+                System.out.println("Could not find any client / product with the given ids");
             }
         } catch (Exception e) {
             System.err.println("Failed to update cart: " + e.getMessage());
