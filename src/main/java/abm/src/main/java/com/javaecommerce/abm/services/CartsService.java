@@ -29,13 +29,18 @@ public class CartsService {
             if (optionalClient.isPresent() && optionalProduct.isPresent()) {
                 Client client = optionalClient.get();
                 Product product = optionalProduct.get();
-                Cart cart = new Cart();
-                cart.setClient_id(client);
-                cart.setProduct_id(product);
-                cart.setPrice(product.getPrice());
-                cart.setAmount(amount);
-                repository.save(cart);
-                System.out.println("Product added to cart");
+                if (product.getStock() >= amount) {
+                    Cart cart = new Cart();
+                    cart.setClient_id(client);
+                    cart.setProduct_id(product);
+                    cart.setPrice(product.getPrice());
+                    cart.setAmount(amount);
+                    cart.setDelivered(false);
+                    repository.save(cart);
+                    System.out.println("Product added to cart");
+                } else {
+                    System.out.println("Product stock inferior to desired amount to be added to cart");
+                }
             }
         } catch (Exception e) {
             System.err.println("Failed to update cart: " + e.getMessage());
@@ -43,14 +48,15 @@ public class CartsService {
         }
     }
 
-    public List<Optional<Cart>> readByClientId(Long id) {
+    public List<Optional<Cart>> readByClientId(Long client_id) {
         try {
-            Optional<Client> optionalClient = clients_repository.findById(id);
+            Optional<Client> optionalClient = clients_repository.findById(client_id);
             if (optionalClient.isPresent()) {
                 Client client = optionalClient.get();
                 List<Cart> carts = client.getCart();
                 if (!carts.isEmpty()) {
                     return carts.stream()
+                            .filter(cart -> !cart.getDelivered().equals(true))
                             .map(Optional::ofNullable)
                             .collect(Collectors.toList());
                 } else {
