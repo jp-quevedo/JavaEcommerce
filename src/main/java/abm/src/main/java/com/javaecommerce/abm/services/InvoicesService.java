@@ -10,8 +10,10 @@ import com.javaecommerce.abm.repositories.InvoicesRepository;
 import com.javaecommerce.abm.repositories.ProductsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 @Service
@@ -22,10 +24,21 @@ public class InvoicesService {
     @Autowired private ProductsRepository products_repository;
     @Autowired private CartsRepository carts_repository;
 
+    private static RestTemplate restTemplate = new RestTemplate();
+    private static String url = "http://worldclockapi.com/api/json/utc/now";
+
     public void saveInvoice(Long client_id) {
         try {
             double invoiceTotal = 0.0;
-            LocalDateTime now = LocalDateTime.now();
+            String jsonResponse = restTemplate.getForObject(url, String.class);
+            String currentDateTimeStr = jsonResponse.substring(jsonResponse.indexOf("currentDateTime\":\"") + 18, jsonResponse.indexOf("\",\"utcOffset"));
+            LocalDateTime now;
+            try {
+                now = LocalDateTime.parse(currentDateTimeStr);
+            } catch (DateTimeParseException e) {
+                System.err.println("Error parsing date-time from API response: " + e.getMessage());
+                now = LocalDateTime.now();
+            }
             Optional<Client> optionalClient = clients_repository.findById(client_id);
             if (optionalClient.isPresent()) {
                 Client client = optionalClient.get();
